@@ -6,21 +6,44 @@ local awful = require("awful")
 local wibox = require("wibox")
 local gears = require("gears")
 local GTop = lgi.GTop
-local diskwidget = require("awesome-disk-widget.diskwidget")
+local disk = require("awesome-disk-widget.disk")
 
 local disk_widget = { mt = {} }
 
-function disk_widget:update_widgets()
-    for _, w in ipairs(self._private.disk_widgets) do
-        w:update()
+local function round(value)
+    return math.floor(value + 0.5)
+end
+
+local function format_size(b)
+    local bytes = b
+    if bytes == 0 then return "0 B" end
+    local i, units = 1, { "B", "KB", "MB", "GB", "TB", "PB", "EB", "YB" }
+    while bytes >= 1024 do
+        bytes = bytes / 1024
+        i = i + 1
     end
+    local unit = units[ i ] or "?"
+    return string.format("%s %s", round(bytes), unit)
+end
+
+function disk_widget:update_text()
+
+    local text_parts = {}
+
+    for _, d in ipairs(self._private.disks) do
+        local disk_state = d:get_state()
+        local text = string.format("%s %s", disk_state.mountpoint, format_size(disk_state.free))
+        table.insert(text_parts, text)
+	end
+
+    self.textbox:set_text(table.concat(text_parts, "  "))
 end
 
 function disk_widget:update_tooltip()
 end
 
 function disk_widget:update()
-    self:update_widgets()
+    self:update_text()
     self:update_tooltip()
 end
 
@@ -34,18 +57,21 @@ local function new(args)
             widget = wibox.widget.textbox,
             font = "FontAwesome 12",
             text = ""
-        }
+        },
+        {
+            id = "textbox",
+            widget = wibox.widget.textbox,
+        }  
     }
 
     GTop.glibtop_init()
 
-    w._private.disk_widgets = {}
+    w._private.disks = {}
     for _, mp in ipairs(args.mountpoints) do
-        local dw = diskwidget({
+        local d = disk({
             mountpoint=mp
         })
-        table.insert(w._private.disk_widgets, dw)
-        w:add(dw)
+        table.insert(w._private.disks, d)
 	end
 
     w.tooltip = awful.tooltip({ objects = { w },})
