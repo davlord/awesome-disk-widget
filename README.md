@@ -1,5 +1,6 @@
 # awesome-disk-widget
 A disk usage widget for Awesome WM
+
 ![awesome-disk-widget screenshot](awesome-disk-widget.png)
 
 ## features
